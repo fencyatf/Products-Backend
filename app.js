@@ -24,6 +24,7 @@ app.get('/',(req,res)=>{
 const url = process.env.MONGODB_URL
 
 async function main() {
+    console.log(url)
     await mongoose.connect(url)
 }
 
@@ -47,7 +48,7 @@ const authenticateToken = (req,res,next) =>{
 const Product = require('./model/product')
 
 //Get all products
-app.get('/products',async (req,res)=>{
+app.get('/products',authenticateToken, async (req,res)=>{
     try {
         const products = await Product.find()
         res.status(200).json(products)
@@ -57,15 +58,38 @@ app.get('/products',async (req,res)=>{
 })
 
 //Create a product
-app.post('/products',async(req,res)=>{
+// app.post('/products',async(req,res)=>{
+//     try {
+//         const product = new Product(req.body)
+//         await product.save()
+//         res.status(201).json(product)
+//     } catch (error) {
+//         res.status(400).json(error)
+//     }
+// })
+app.post("/products", async (req, res) => {
     try {
-        const product = new Product(req.body)
-        await product.save()
-        res.status(201).json(product)
+      const { name, price, description, url ,rating } = req.body;
+  
+      console.log("Received data:", req.body); // Log received request body for debugging
+  
+      const newProduct = new Product({
+        name,
+        price,
+        description,
+        url,
+        rating
+      });
+  
+      await newProduct.save();
+      res.status(201).json({message:"Product created successfully",Product:newProduct});
     } catch (error) {
-        res.status(400).json(error)
+      res.status(400).json({
+        message: "Error while creating the product",
+        error: error.message || error,
+      });
     }
-})
+  })
 
 //Get product by ID
 app.get('/products/:id',async (req,res)=>{
@@ -121,7 +145,7 @@ app.get('/products/count/:price',async(req,res)=>{
             },
             {
                 $count:"productCount"
-            }
+            },
         ])
         res.status(200).send(productCount)
     } catch (error) {
@@ -152,7 +176,7 @@ app.post('/user', async(req,res)=>{
             }
             var user = new User(userItem)
             await user.save()
-            res.status(201).json(user)
+            res.status(201).json({message:"Signup Successfull",user:user})
         });
 
 
@@ -192,6 +216,5 @@ app.post('/login',async(req,res)=>{
 
 
 app.listen(port,()=>{
-    console.log('Server startted')
+    console.log('Server started')
 })
-
