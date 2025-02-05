@@ -11,11 +11,26 @@ const secretKey = "secret123"
 require('dotenv').config()
 
 app.use(express.json())
-app.use(cors(
-    {
-        origin:'https://products-frontend-ojn6.onrender.com'
+app.use(cors({
+    origin: ['http://localhost:5173', 'https://products-frontend-ojn6.onrender.com'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true // 🔥 Important for authentication with cookies/JWT
+}));
+
+// Handle preflight requests
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", req.headers.origin);
+    res.header("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.header("Access-Control-Allow-Credentials", "true");
+
+    if (req.method === "OPTIONS") {
+        return res.sendStatus(200);
     }
-))
+
+    next();
+})
 
 app.get('/',(req,res)=>{ 
     res.send("Form the server")
@@ -69,27 +84,24 @@ app.get('/products',authenticateToken, async (req,res)=>{
 // })
 app.post("/products", async (req, res) => {
     try {
-      const { name, price, description, url ,rating } = req.body;
-  
-      console.log("Received data:", req.body); // Log received request body for debugging
-  
-      const newProduct = new Product({
-        name,
-        price,
-        description,
-        url,
-        rating
-      });
-  
-      await newProduct.save();
-      res.status(201).json({message:"Product created successfully",Product:newProduct});
+        const { name, price, description, url } = req.body;
+
+        // 🔹 Check if required fields exist
+        if (!name || !price || !description || !url) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+
+        console.log("Received data:", req.body); // Debugging log
+
+        const newProduct = new Product({ name, price, description, url });
+        await newProduct.save();
+
+        res.status(201).json({ message: "Product created successfully", product: newProduct });
     } catch (error) {
-      res.status(400).json({
-        message: "Error while creating the product",
-        error: error.message || error,
-      });
+        res.status(500).json({ message: "Error while creating the product", error: error.message });
     }
-  })
+});
+
 
 //Get product by ID
 app.get('/products/:id',async (req,res)=>{
@@ -187,31 +199,26 @@ app.post('/user', async(req,res)=>{
 })
 
 //Login route
-app.post('/login',async(req,res)=>{
-    try {
-        const {email,password} = req.body
-        const user = await User.findOne({email:email})
-
-        if(!user){
-            return res.status(500).json({message:"User not found"})
-        }
-        const isValid = await bcrypt.compare(password,user.password)
-        console.log(isValid)
-
-        if(!isValid)
-            return res.status(500).json({message:"Invalid Credentials"})
-
-        //Token creation
-        let payload = {user:email}
-        
-        let token = jwt.sign(payload,secretKey)
-        res.status(200).json({message:"Login successful", token:token})
-
-
-
-    } catch (error) {
-        res.status(400).json(error)
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email: email });
+    if (!user) {
+      return res.status(500).json({ error: "User not Found" });
     }
+    console.log(password)
+    console.log(user.password)
+    const isValid =await bcrypt.compare(password,user.password);
+    if (!isValid) {
+      return res.status(500).json({ error: "Invalid Credentials" });
+    }
+    //Token creation
+    let payload = { user: email };
+    let token = jwt.sign(payload, secretKey);
+    res.status(200).json({ message: "Login Successfully", token: token });
+  } catch (error) {
+    res.status(400).json(error);
+  }
 })
 
 
