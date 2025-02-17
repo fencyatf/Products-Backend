@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 const express = require('express')
 const mongoose = require('mongoose')
 const jwt = require('jsonwebtoken')
@@ -5,15 +7,14 @@ const bcrypt = require('bcrypt')
 const cors = require('cors')
 
 const app = express()
-const port = 3000
+const port = process.env.PORT
 const secretKey = "secret123"
 
-//require('dotenv').config()
 
 app.use(express.json())
 app.use(cors({
-    origin: "http://localhost:3000",  
-    credentials: true
+    origin: 'https://products-frontend-ojn6.onrender.com',  
+    credentials: true       //http://localhost:3000
 }));
 
 
@@ -21,11 +22,11 @@ app.get('/',(req,res)=>{
     res.send("Form the server")
 })
 
-//const url = process.env.MONGODB_URL
+const url = process.env.MONGODB_URL
 
 async function main() {
-    //console.log(url)
-    await mongoose.connect('mongodb+srv://fencyatf:1234567890@cluster0.pywpy.mongodb.net/e48db')
+    console.log(url)
+    await mongoose.connect(url)
 }
 
 main() 
